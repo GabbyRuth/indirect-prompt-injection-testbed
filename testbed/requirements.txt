@@ -1,0 +1,9 @@
+# --- LLM & Agent Frameworks ---
+openai>=1.12.0
+anthropic>=0.18.0
+langchain>=0.1.0
+
+# --- Core Utilities ---
+requests>=2.31.0
+httpx>=0.27.0
+python-dotenv>=1.0.0
