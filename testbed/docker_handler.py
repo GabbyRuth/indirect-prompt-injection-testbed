@@ -13,8 +13,8 @@ def run_test(agent: str, prompt: str, test_case_dir: Optional[str] = None):
     except docker.errors.ImageNotFound:
         print(f"Image '{image_tag}' not found. Building from docker/Dockerfile...")
         client.images.build(
-            path=".",
-            dockerfile="docker/Dockerfile",
+            path=os.path.dirname(__file__),
+            dockerfile="Docker/Dockerfile",
             tag=image_tag,
             rm=True
         )
