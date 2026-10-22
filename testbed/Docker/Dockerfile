@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     
 WORKDIR /app
 
+RUN mkdir -p /app/assets
+
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
@@ -17,4 +19,4 @@ COPY . /app
 RUN useradd -m sandbox && chown -R sandbox:sandbox /app
 USER sandbox
 
-CMD ["python", "runner.py"]
+CMD ["python", "Docker/runner.py"]

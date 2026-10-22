@@ -4,29 +4,30 @@ from typing import Optional
 
 client = docker.from_env()
 
-def run_test(agent: str, prompt: str, test_case_dir: Optional[str] = None):
+def run_test(agent: str, prompt: str, asset: Optional[str] = None):
     image_tag = "prompt-injection-runner:latest"
 
-    # Ensure the base image exists or build it
-    try:
-        client.images.get(image_tag)
-    except docker.errors.ImageNotFound:
-        print(f"Image '{image_tag}' not found. Building from docker/Dockerfile...")
-        client.images.build(
-            path=os.path.dirname(__file__),
-            dockerfile="Docker/Dockerfile",
-            tag=image_tag,
-            rm=True
-        )
+    # Always rebuild so local code edits are reflected in test containers.
+    print(f"Building image '{image_tag}' from Docker/Dockerfile...")
+    client.images.build(
+        path=os.path.dirname(__file__),
+        dockerfile="Docker/Dockerfile",
+        tag=image_tag,
+        rm=True
+    )
 
     #  Resolve absolute path for isolated asset mounting
     volumes = {}
-    if test_case_dir:
-        abs_test_dir = os.path.abspath(test_case_dir)
-        volumes[abs_test_dir] = {
-            "bind": "/app/assets",
+    if asset:
+        abs_asset_path = os.path.abspath(asset)
+        asset_name = os.path.basename(abs_asset_path)
+        volumes[abs_asset_path] = {
+            "bind": f"/app/assets/{asset_name}",
             "mode": "ro"
         }
+
+
+    
 
     container = None
     try:
