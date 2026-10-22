@@ -1,11 +1,11 @@
-import docker_handler
+import docker_handler as docker_handler
 import os
 
 # this will dynamically inject our attack randomly into the payload
-import prompt_injector
+import helpers.prompt_injector as prompt_injector
 
 # this handles the test cases that include extra needs such as hosting a webserver, spoofing bank apis, calendar servers, email servers, putting files on the system
-import outcome_handler
+import helpers.outcome_handler as outcome_handler
 
 agent_names = [
     "claude",
@@ -19,7 +19,7 @@ assets_dir = os.path.abspath("tests/assets/clean-assets")
 for folder in os.listdir("tests"):
     test_case_dir = os.path.join("tests", folder)
 
-    outcome_handler.setup_test_case(test_case_dir)
+    # outcome_handler.setup_test_case(test_case_dir)
     
 
     if os.path.isdir(test_case_dir):
