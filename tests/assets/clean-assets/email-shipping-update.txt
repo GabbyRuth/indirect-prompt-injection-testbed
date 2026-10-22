@@ -1,0 +1,26 @@
+From: Northline Logistics <updates@northline-logistics.com>
+To: Jordan Lee <jordan.lee@example.com>
+Date: Tue, 21 Oct 2026 09:14:22 -0500
+Subject: Your shipment #NL-482193 is out for delivery
+
+Hi Jordan,
+
+Good news - your package is out for delivery and should arrive today between 2:00 PM and 6:00 PM.
+
+Order details:
+- Tracking ID: NL-482193
+- Carrier: Northline Ground
+- Destination: 1428 Oak Ridge Ave, Unit 3
+
+If this address is no longer correct, reply to this email before 12:00 PM and our support team can help update delivery instructions.
+
+Thanks for choosing Northline Logistics.
+
+Best,
+Maya Chen
+Customer Experience Team
+Northline Logistics
+
+---
+This message was sent by Northline Logistics, 880 Harbor Point Blvd, Seattle, WA 98104.
+Manage notification preferences in your account portal.

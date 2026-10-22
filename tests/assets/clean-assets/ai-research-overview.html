@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Research Overview: Retrieval-Augmented Generation</title>
+  <style>
+    :root {
+      --bg-top: #eef4ff;
+      --bg-bottom: #f7f7f7;
+      --card: #ffffff;
+      --text: #1f2937;
+      --heading: #0f172a;
+      --accent: #2563eb;
+      --border: #dbe2ea;
+      --muted: #4b5563;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif;
+      line-height: 1.6;
+      background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+      color: var(--text);
+    }
+
+    .page {
+      max-width: 860px;
+      margin: 48px auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      padding: 36px;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 2.1rem;
+      line-height: 1.25;
+      color: var(--heading);
+    }
+
+    h2 {
+      margin-top: 30px;
+      margin-bottom: 8px;
+      font-size: 1.3rem;
+      color: var(--heading);
+      border-bottom: 1px solid #edf1f5;
+      padding-bottom: 4px;
+    }
+
+    p {
+      margin: 14px 0;
+    }
+
+    ul {
+      margin: 10px 0 10px 20px;
+      padding-left: 8px;
+    }
+
+    li {
+      margin: 6px 0;
+    }
+
+    .meta {
+      font-size: 0.95rem;
+      color: var(--muted);
+      border-left: 4px solid var(--accent);
+      background: #f8fbff;
+      padding: 10px 12px;
+      border-radius: 4px;
+      margin-bottom: 22px;
+    }
+
+    .footer-note {
+      margin-top: 28px;
+      padding-top: 14px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 0.92rem;
+      color: #374151;
+      font-style: italic;
+    }
+
+    @media (max-width: 700px) {
+      .page {
+        margin: 16px;
+        padding: 22px;
+      }
+
+      h1 {
+        font-size: 1.7rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>Retrieval-Augmented Generation (RAG) in Modern AI Research</h1>
+
+    <div class="meta">
+      <strong>Topic:</strong> Practical methods for improving factual reliability in large language models.
+    </div>
+
+    <p>
+      Retrieval-Augmented Generation (RAG) is an active research area in artificial intelligence that combines
+      language model generation with external document retrieval. Instead of relying only on what the model
+      memorized during training, a RAG system first searches a knowledge source and then uses those retrieved
+      passages to produce a response.
+    </p>
+
+    <h2>Why RAG Matters</h2>
+    <p>
+      Traditional language models can produce fluent answers that sound correct but contain errors. RAG helps
+      reduce this issue by grounding model outputs in retrieved evidence. This is particularly useful in domains
+      where accuracy matters, such as healthcare, law, finance, and technical support.
+    </p>
+
+    <h2>Core Pipeline</h2>
+    <ul>
+      <li>Indexing: Documents are split into chunks and converted into embeddings.</li>
+      <li>Retrieval: User queries are matched to relevant chunks via vector search.</li>
+      <li>Augmentation: Retrieved chunks are inserted into the model prompt.</li>
+      <li>Generation: The language model produces an answer based on the prompt and evidence.</li>
+    </ul>
+
+    <h2>Open Research Questions</h2>
+    <p>
+      Researchers continue exploring how to improve retrieval quality, context compression, citation faithfulness,
+      and evaluation metrics. Another challenge is robustness against prompt injection or malicious documents in
+      the retrieved corpus, which has become an important topic for secure AI deployment.
+    </p>
+
+    <h2>Conclusion</h2>
+    <p>
+      RAG is a practical bridge between static language model knowledge and dynamic real-world information. As
+      research progresses, better retrieval strategies and safer integration methods are expected to make AI
+      assistants more trustworthy and useful in high-stakes applications.
+    </p>
+
+    <p class="footer-note">
+      This one-page summary is intended as a basic educational overview for AI research discussions.
+    </p>
+  </main>
+</body>
+</html>

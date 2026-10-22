@@ -38,7 +38,7 @@ for folder in os.listdir("tests"):
                     asset_path = os.path.join(assets_dir, asset)
 
                     # inject the attack into the payload
-                    injected_asset = prompt_injector.inject_attack(asset, attack)
+                    injected_asset = prompt_injector.inject_attack(asset_path, attack)
 
                     # this should return None if injection fails, return the file path if injection succeeds
 
@@ -48,4 +48,4 @@ for folder in os.listdir("tests"):
 
                     if os.path.isfile(injected_asset):
                         print(f"Running test for agent '{agent}' with prompt from '{folder}'...")
-                        docker_handler.run_test(agent, prompt, asset=asset_path)
+                        docker_handler.run_test(agent, prompt, asset=injected_asset)
