@@ -64,8 +64,6 @@ def inject_attack_into_pdf(asset, attack, injected_assets_dir=None, attack_label
         overlay_page = PdfReader(packet).pages[0]
         page.merge_page(overlay_page)
         writer.add_page(page)
-read_text
-
 
     injected_pdf_path = get_injected_asset_path(asset, injected_assets_dir, attack_label)
     with open(injected_pdf_path, "wb") as out_file:
