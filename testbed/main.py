@@ -1,5 +1,6 @@
 import docker_handler as docker_handler
 import os
+from pathlib import Path
 
 # this will dynamically inject our attack randomly into the payload
 import helpers.prompt_injector as prompt_injector
@@ -13,39 +14,69 @@ agent_names = [
     "open_claw"
 ]
 
+payloads_root = Path("tests/payloads")
+attacks_root = Path("tests/attacks")
 
-assets_dir = os.path.abspath("tests/assets/clean-assets")
 
-for folder in os.listdir("tests"):
-    test_case_dir = os.path.join("tests", folder)
+def read_text(path: Path):
+    with path.open("r", encoding="utf-8") as f:
+        return f.read().strip()
 
-    # outcome_handler.setup_test_case(test_case_dir)
-    
 
-    if os.path.isdir(test_case_dir):
-        prompt_file_path = os.path.join(test_case_dir, "prompt.txt")
-        attack_file_path = os.path.join(test_case_dir, "attack.txt")
+def iter_files(path: Path):
+    return sorted([p for p in path.iterdir() if p.is_file()])
 
-        if os.path.exists(prompt_file_path):
-            with open(prompt_file_path, "r") as f:
-                prompt = f.read().strip()
-        if os.path.exists(attack_file_path):
-            with open(attack_file_path, "r") as f:
-                attack = f.read().strip()
-        
-            for agent in agent_names:
-                for asset in os.listdir(assets_dir):
-                    asset_path = os.path.join(assets_dir, asset)
 
-                    # inject the attack into the payload
-                    injected_asset = prompt_injector.inject_attack(asset_path, attack)
+if not payloads_root.exists() or not attacks_root.exists():
+    raise FileNotFoundError("Expected tests/payloads and tests/attacks directories.")
 
-                    # this should return None if injection fails, return the file path if injection succeeds
+attack_files = sorted(attacks_root.glob("*.txt"))
+if not attack_files:
+    raise FileNotFoundError("No attack files found in tests/attacks.")
 
-                    if not injected_asset:
-                        print(f"Failed to inject attack for agent '{agent}' in test case '{folder}'. Skipping...")
-                        continue
+for payload_dir in sorted(payloads_root.iterdir()):
+    if not payload_dir.is_dir():
+        continue
 
-                    if os.path.isfile(injected_asset):
-                        print(f"Running test for agent '{agent}' with prompt from '{folder}'...")
-                        docker_handler.run_test(agent, prompt, asset=injected_asset)
+    prompt_file = payload_dir / "prompt.txt"
+    clean_dir = payload_dir / "clean"
+    injected_dir = payload_dir / "injected"
+
+    if not prompt_file.exists() or not clean_dir.exists():
+        print(f"Skipping payload '{payload_dir.name}' (missing prompt.txt or clean/).")
+        continue
+
+    injected_dir.mkdir(parents=True, exist_ok=True)
+    clean_assets = iter_files(clean_dir)
+    if not clean_assets:
+        print(f"Skipping payload '{payload_dir.name}' (no files in clean/).")
+        continue
+
+    prompt = read_text(prompt_file)
+
+    for attack_file in attack_files:
+        attack_name = attack_file.stem
+        attack = read_text(attack_file)
+
+        for agent in agent_names:
+            for clean_asset in clean_assets:
+                injected_asset = prompt_injector.inject_attack(
+                    str(clean_asset),
+                    attack,
+                    injected_assets_dir=str(injected_dir),
+                    attack_label=attack_name
+                )
+
+                if not injected_asset:
+                    print(
+                        f"Failed to inject attack '{attack_name}' into '{clean_asset.name}' "
+                        f"for payload '{payload_dir.name}' and agent '{agent}'."
+                    )
+                    continue
+
+                if os.path.isfile(injected_asset):
+                    print(
+                        f"Running payload '{payload_dir.name}', attack '{attack_name}', "
+                        f"agent '{agent}', asset '{os.path.basename(injected_asset)}'."
+                    )
+                    docker_handler.run_test(agent, prompt, asset=injected_asset)
