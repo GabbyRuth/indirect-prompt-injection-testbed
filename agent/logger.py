@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-LOG_DIR = Path(__file__).resolve().parent /"logs"
+LOG_DIR = Path(__file__).resolve().parent.parent /"logs"
 
 
 class AgentLogger:
