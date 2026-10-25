@@ -18,7 +18,7 @@ SYSTEM_PROMPTS = {
     )
 }
 
-# TODO: Implement tool_allowlist, provenance, sensitive_blocking, and approval defenses
+# TODO: Implement allowlist, provenance, sensitive_blocking, and require_approval defenses
 
 def get_system_prompt(defense: str) -> str:
     if defense not in DEFENSES:

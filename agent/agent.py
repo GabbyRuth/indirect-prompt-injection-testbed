@@ -2,9 +2,9 @@ import os
 import json
 from dotenv import load_dotenv
 from groq import Groq
-from tools import read_file
-from defenses import get_system_prompt
-from logger import AgentLogger
+from .tools import read_file, summarize_document, search_local_docs, send_message, write_file
+from .defenses import get_system_prompt
+from .logger import AgentLogger
 
 load_dotenv()
 
@@ -28,7 +28,83 @@ TOOLS = [
                 "required": ["filename"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "summarize_document",
+            "description": "Read a text document and return a concise summary of its contents.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "filename": {
+                        "type": "string",
+                        "description": "Name of the document to summarize, such as report.txt"
+                    }
+                },
+                    "required": ["filename"]
+            }
+        }
+    },
+        {
+    "type": "function",
+    "function": {
+        "name": "search_local_docs",
+        "description": "Search local text documents for a keyword or phrase.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The keyword or phrase to search for"
+                }
+            },
+            "required": ["query"]
+        }
     }
+},
+{
+    "type": "function",
+    "function": {
+        "name": "send_message",
+        "description": "Send a simulated message to a recipient.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "recipient": {
+                    "type": "string",
+                    "description": "Recipient of the message"
+                },
+                "message": {
+                    "type": "string",
+                    "description": "Message content"
+                }
+            },
+            "required": ["recipient", "message"]
+        }
+    }
+},
+{
+    "type": "function",
+    "function": {
+        "name": "write_file",
+        "description": "Write text content to a file in the output directory.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string",
+                    "description": "Name of the output file"
+                },
+                "content": {
+                    "type": "string",
+                    "description": "Text to write to the file"
+                }
+            },
+            "required": ["filename", "content"]
+        }
+    }
+}
 ]
 
 
@@ -94,6 +170,21 @@ def run_agent(user_task: str, defense: str = "baseline", max_steps: int = 10) ->
 
                         if function_name == "read_file":
                             result = read_file(arguments["filename"])
+                        elif function_name == "summarize_document":
+                            result = summarize_document(arguments["filename"])
+                        elif function_name == "search_local_docs":
+                            result = search_local_docs(arguments["query"])
+
+                        elif function_name == "send_message":
+                            result = send_message(
+                            arguments["recipient"],
+                            arguments["message"]
+                        )
+                        elif function_name == "write_file":
+                            result = write_file(
+                            arguments["filename"],
+                            arguments["content"]
+                        )
                         else:
                             result = f"Error: Unknown tool '{function_name}'"
 
