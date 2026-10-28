@@ -30,6 +30,8 @@ def run_agent(agent_name, prompt, assets_dir=None):
         # return the response text and all actions taken by the agent in a structured format
         return response.completion
 
+
+
 def main():
     if not AGENT_NAME or not PROMPT:
         print("AGENT_NAME and PROMPT environment variables must be set.")

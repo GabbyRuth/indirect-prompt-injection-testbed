@@ -79,4 +79,9 @@ for payload_dir in sorted(payloads_root.iterdir()):
                         f"Running payload '{payload_dir.name}', attack '{attack_name}', "
                         f"agent '{agent}', asset '{os.path.basename(injected_asset)}'."
                     )
-                    docker_handler.run_test(agent, prompt, asset=injected_asset)
+
+                    if Path(injected_asset).suffix.lower() == ".pdf":
+                        docker_handler.run_test(agent, prompt, asset=injected_asset)
+                    else:
+                        docker_handler.run_test(agent, prompt)
+                
