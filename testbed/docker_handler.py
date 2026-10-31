@@ -1,10 +1,14 @@
 import os
 import docker
 from typing import Optional
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 client = docker.from_env()
 
-def run_test(agent: str, prompt: str, asset: Optional[str] = None):
+def run_test(agent: str, prompt: str, asset: Optional[str] = None, original_filename: Optional[str] = None):
     image_tag = "prompt-injection-runner:latest"
 
     # Always rebuild so local code edits are reflected in test containers.
@@ -20,14 +24,22 @@ def run_test(agent: str, prompt: str, asset: Optional[str] = None):
     volumes = {}
     if asset:
         abs_asset_path = os.path.abspath(asset)
-        asset_name = os.path.basename(abs_asset_path)
+        asset_name = original_filename or os.path.basename(abs_asset_path)
+        asset_name = Path(asset_name).name
         volumes[abs_asset_path] = {
             "bind": f"/app/assets/{asset_name}",
             "mode": "ro"
         }
 
+    # Mount logs directory
+    logs_dir = Path(__file__).resolve().parent.parent / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
 
-    
+    volumes[str(logs_dir)] = {
+        "bind": "/app/logs",
+        "mode": "rw"
+    }
+
 
     container = None
     try:
@@ -38,7 +50,9 @@ def run_test(agent: str, prompt: str, asset: Optional[str] = None):
                 "AGENT_NAME": agent,
                 "PROMPT": prompt,
                 "CLAUDE_API_KEY": os.getenv("CLAUDE_API_KEY"),
-                "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY")
+                "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
+                "GROQ_API_KEY": os.getenv("GROQ_API_KEY"),
+                "AGENT_LOG_DIR": "/app/logs"
             },
             volumes=volumes if volumes else None,
             detach=True
