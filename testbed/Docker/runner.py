@@ -1,8 +1,9 @@
 # here we will read the env variables from docker, then run the agent with the prompt and test case dir
 import os
 import sys
-import anthropic
 from pathlib import Path
+
+from agent.agent import run_agent as run_custom_agent
 
 AGENT_NAME = os.getenv("AGENT_NAME")
 PROMPT = os.getenv("PROMPT")
@@ -21,6 +22,7 @@ def load_assets():
 
 def run_agent(agent_name, prompt, assets_dir=None):
     if agent_name == "claude":
+        import anthropic
         client = anthropic.Client(os.getenv("CLAUDE_API_KEY"))
         response = client.completions.create(
             model="claude-3-5-sonnet-latest",
@@ -29,6 +31,10 @@ def run_agent(agent_name, prompt, assets_dir=None):
         )
         # return the response text and all actions taken by the agent in a structured format
         return response.completion
+    
+    elif agent_name == "custom":
+        response = run_custom_agent(prompt, assets_dir, "baseline")
+        return response
 
 
 

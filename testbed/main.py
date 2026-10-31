@@ -8,14 +8,16 @@ import helpers.prompt_injector as prompt_injector
 # this handles the test cases that include extra needs such as hosting a webserver, spoofing bank apis, calendar servers, email servers, putting files on the system
 import helpers.outcome_handler as outcome_handler
 
-agent_names = [
-    "claude",
-    "custom",
-    "open_claw"
-]
+# agent_names = [
+#    "claude",
+#    "custom",
+#    "open_claw"
+#]
 
-payloads_root = Path("tests/payloads")
-attacks_root = Path("tests/attacks")
+agent_names = ["custom"]
+
+payloads_root = Path("../tests/payloads")
+attacks_root = Path("../tests/attacks")
 
 
 def read_text(path: Path):
@@ -30,7 +32,8 @@ def iter_files(path: Path):
 if not payloads_root.exists() or not attacks_root.exists():
     raise FileNotFoundError("Expected tests/payloads and tests/attacks directories.")
 
-attack_files = sorted(attacks_root.glob("*.txt"))
+#attack_files = sorted(attacks_root.glob("*.txt"))
+attack_files = sorted(attacks_root.glob("*.txt"))[:1]
 if not attack_files:
     raise FileNotFoundError("No attack files found in tests/attacks.")
 
@@ -80,8 +83,7 @@ for payload_dir in sorted(payloads_root.iterdir()):
                         f"agent '{agent}', asset '{os.path.basename(injected_asset)}'."
                     )
 
-                    if Path(injected_asset).suffix.lower() == ".pdf":
-                        docker_handler.run_test(agent, prompt, asset=injected_asset)
-                    else:
-                        docker_handler.run_test(agent, prompt)
+                    full_prompt = f"{prompt}\n\nThe document is named: {clean_asset.name}"
+
+                    docker_handler.run_test(agent, full_prompt, asset=injected_asset, original_filename=clean_asset.name)
                 
