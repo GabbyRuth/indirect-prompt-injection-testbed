@@ -84,4 +84,3 @@ for payload_dir in sorted(payloads_root.iterdir()):
                         docker_handler.run_test(agent, prompt, asset=injected_asset)
                     else:
                         docker_handler.run_test(agent, prompt)
-                
