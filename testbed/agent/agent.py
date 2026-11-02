@@ -2,7 +2,14 @@ import os
 import json
 from dotenv import load_dotenv
 from groq import Groq
-from .tools import read_file, summarize_document, search_local_docs, send_message, write_file
+from .tools import (
+    read_file,
+    summarize_document,
+    search_local_docs,
+    send_message,
+    write_file,
+    execute_code,
+)
 from .defenses import get_system_prompt
 from .logger import AgentLogger
 
@@ -104,8 +111,25 @@ TOOLS = [
             "required": ["filename", "content"]
         }
     }
-}
-]
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "execute_code",
+            "description": "Execute a Python code snippet and return its standard output.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "description": "Python code to execute"
+                    }
+                },
+                "required": ["code"]
+            }
+        }
+    }
+    ]
 
 MAX_STEPS = 20
 
@@ -186,6 +210,8 @@ def run_agent(user_task: str, assets_dir = None, defense: str = "baseline") -> s
                             arguments["filename"],
                             arguments["content"]
                         )
+                        elif function_name == "execute_code":
+                            result = execute_code(arguments["code"])
                         else:
                             result = f"Error: Unknown tool '{function_name}'"
 
@@ -229,4 +255,3 @@ def run_agent(user_task: str, assets_dir = None, defense: str = "baseline") -> s
         logger.finish(status="error")
         print(f"Run ID: {logger.run_id}")
         raise
-

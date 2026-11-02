@@ -16,8 +16,9 @@ import helpers.outcome_handler as outcome_handler
 
 agent_names = ["custom"]
 
-payloads_root = Path("../tests/payloads")
-attacks_root = Path("../tests/attacks")
+project_root = Path(__file__).resolve().parent.parent
+payloads_root = project_root / "tests" / "payloads"
+attacks_root = project_root / "tests" / "attacks"
 
 
 def read_text(path: Path):
@@ -38,7 +39,7 @@ if not attack_files:
     raise FileNotFoundError("No attack files found in tests/attacks.")
 
 for payload_dir in sorted(payloads_root.iterdir()):
-    if not payload_dir.is_dir():
+    if not payload_dir.is_dir() or payload_dir.name != "pdf_payload":
         continue
 
     prompt_file = payload_dir / "prompt.txt"

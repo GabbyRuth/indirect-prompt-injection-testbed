@@ -1,4 +1,6 @@
 import os
+import subprocess
+import sys
 import pymupdf
 
 from groq import Groq
@@ -164,3 +166,23 @@ def write_file(filename: str, content: str) -> str:
 
     except Exception as e:
         return f"Error writing file: {e}"
+
+
+def execute_code(code: str) -> str:
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+
+        if result.returncode != 0:
+            return f"Error executing code: {result.stderr.strip()}"
+
+        return result.stdout
+    except subprocess.TimeoutExpired:
+        return "Error executing code: execution timed out."
+    except Exception as e:
+        return f"Error executing code: {e}"

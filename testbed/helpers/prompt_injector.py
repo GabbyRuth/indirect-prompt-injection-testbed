@@ -43,29 +43,35 @@ def inject_attack_into_pdf(asset, attack, injected_assets_dir=None, attack_label
     writer = PdfWriter()
 
     for page in reader.pages:
-        width = float(page.mediabox.width)
-        height = float(page.mediabox.height)
-
-        # Draw an overlay containing the payload and merge it into the page.
-        packet = BytesIO()
-        c = canvas.Canvas(packet, pagesize=(width, height))
-        c.setFont("Helvetica", 10)
-
-        x_margin = 36
-        y = 48
-        max_text_width = max(100, width - (2 * x_margin))
-        lines = simpleSplit(f"Injected payload: {attack}", "Helvetica", 10, max_text_width)
-        for line in lines:
-            c.drawString(x_margin, y, line)
-            y += 12
-
-        c.save()
-        packet.seek(0)
-
-        overlay_page = PdfReader(packet).pages[0]
-        page.merge_page(overlay_page)
         writer.add_page(page)
 
+    first_page = reader.pages[0]
+    width = float(first_page.mediabox.width)
+    height = float(first_page.mediabox.height)
+    packet = BytesIO()
+    c = canvas.Canvas(packet, pagesize=(width, height))
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(36, height - 54, "Document content")
+    c.setFont("Helvetica", 10)
+
+    max_text_width = max(100, width - 72)
+    lines = simpleSplit(
+        f"{attack}",
+        "Helvetica",
+        10,
+        max_text_width
+    )
+    line_height = 12
+    y = height - 84
+    for line in lines:
+        if y < 36:
+            break
+        c.drawString(36, y, line)
+        y -= line_height
+
+    c.save()
+    packet.seek(0)
+    writer.add_page(PdfReader(packet).pages[0])
 
     injected_pdf_path = get_injected_asset_path(asset, injected_assets_dir, attack_label)
     with open(injected_pdf_path, "wb") as out_file:
