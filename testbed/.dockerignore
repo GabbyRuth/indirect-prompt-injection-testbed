@@ -1,0 +1,29 @@
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Python virtual environments
+.venv/
+venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Git
+.git/
+.gitignore
+
+# macOS
+.DS_Store
+
+# Logs and generated output
+logs/
+output/
+
+# Local editor settings
+.vscode/
+.idea/

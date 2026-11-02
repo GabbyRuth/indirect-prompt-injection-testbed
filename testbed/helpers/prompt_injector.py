@@ -1,4 +1,5 @@
 from pypdf import PdfReader, PdfWriter
+from icalendar import Calendar
 import os
 from io import BytesIO
 from reportlab.lib.utils import simpleSplit
@@ -64,7 +65,6 @@ def inject_attack_into_pdf(asset, attack, injected_assets_dir=None, attack_label
         overlay_page = PdfReader(packet).pages[0]
         page.merge_page(overlay_page)
         writer.add_page(page)
-read_text
 
 
     injected_pdf_path = get_injected_asset_path(asset, injected_assets_dir, attack_label)
@@ -72,15 +72,40 @@ read_text
         writer.write(out_file)
     return injected_pdf_path
 
+# def inject_attack_into_html(asset, attack, injected_assets_dir=None, attack_label=None):
+#     with open(asset, "r") as f:
+#         html_content = f.read()
+
+#     modified_html_content = html_content + f"\n<!-- Injected payload: {attack} -->"
+
+#     injected_html_path = get_injected_asset_path(asset, injected_assets_dir, attack_label)
+#     with open(injected_html_path, "w") as f:
+#         f.write(modified_html_content)
+
+#     return injected_html_path
+
 def inject_attack_into_html(asset, attack, injected_assets_dir=None, attack_label=None):
-    with open(asset, "r") as f:
+    from bs4 import BeautifulSoup
+
+    with open(asset, "r", encoding="utf-8") as f:
         html_content = f.read()
 
-    modified_html_content = html_content + f"\n<!-- Injected payload: {attack} -->"
+    soup = BeautifulSoup(html_content, "html.parser")
 
-    injected_html_path = get_injected_asset_path(asset, injected_assets_dir, attack_label)
-    with open(injected_html_path, "w") as f:
-        f.write(modified_html_content)
+    injected_element = soup.new_tag("p")
+    injected_element.string = f"Injected payload: {attack}"
+
+    if soup.body:
+        soup.body.append(injected_element)
+    else:
+        soup.append(injected_element)
+
+    injected_html_path = get_injected_asset_path(
+        asset, injected_assets_dir, attack_label
+    )
+
+    with open(injected_html_path, "w", encoding="utf-8") as f:
+        f.write(str(soup))
 
     return injected_html_path
 
@@ -97,15 +122,34 @@ def inject_attack_into_email(asset, attack, injected_assets_dir=None, attack_lab
 
     return injected_email_path
 
+# def inject_attack_into_calendar(asset, attack, injected_assets_dir=None, attack_label=None):
+#     with open(asset, "r") as f:
+#         calendar_content = f.read()
+
+#     modified_calendar_content = calendar_content + f"\n\nInjected payload: {attack}"
+
+#     injected_calendar_path = get_injected_asset_path(asset, injected_assets_dir, attack_label)
+#     with open(injected_calendar_path, "w") as f:
+#         f.write(modified_calendar_content)
+
+#     return injected_calendar_path
+
 def inject_attack_into_calendar(asset, attack, injected_assets_dir=None, attack_label=None):
-    with open(asset, "r") as f:
-        calendar_content = f.read()
+    # Parse the original calendar file
+    with open(asset, "rb") as f:
+        calendar = Calendar.from_ical(f.read())
 
-    modified_calendar_content = calendar_content + f"\n\nInjected payload: {attack}"
+    for event in calendar.walk("VEVENT"):
+        original_description = str(event.get("DESCRIPTION", ""))
+        event["DESCRIPTION"] = original_description + "\n\n" + attack
+        break
 
-    injected_calendar_path = get_injected_asset_path(asset, injected_assets_dir, attack_label)
-    with open(injected_calendar_path, "w") as f:
-        f.write(modified_calendar_content)
+    injected_calendar_path = get_injected_asset_path(
+        asset, injected_assets_dir, attack_label
+    )
+
+    with open(injected_calendar_path, "wb") as f:
+        f.write(calendar.to_ical())
 
     return injected_calendar_path
 
