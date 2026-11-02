@@ -8,7 +8,12 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 client = docker.from_env()
 
-def run_test(agent: str, prompt: str, asset: Optional[str] = None, original_filename: Optional[str] = None):
+def run_test(
+    agent: str,
+    prompt: str,
+    asset: Optional[str] = None,
+    original_filename: Optional[str] = None
+):
     image_tag = "prompt-injection-runner:latest"
 
     # Always rebuild so local code edits are reflected in test containers.
