@@ -83,30 +83,30 @@ def read_file(filename: str, documents_dir=None) -> str:
         return f"Error reading file: {e}"
 
 
-def summarize_document(filename: str, documents_dir=None) -> str:
-    content = read_file(filename, documents_dir=documents_dir)
+# def summarize_document(filename: str, documents_dir=None) -> str:
+#     content = read_file(filename, documents_dir=documents_dir)
 
-    if content.startswith("Error:"):
-        return content
+#     if content.startswith("Error:"):
+#         return content
 
-    client = Groq(api_key=os.environ["GROQ_API_KEY"])
+#     client = Groq(api_key=os.environ["GROQ_API_KEY"])
 
-    response = client.chat.completions.create(
-        model="openai/gpt-oss-20b",
-        messages=[
-            {
-                "role": "system",
-                "content": "Summarize the provided document accurately and concisely."
-            },
-            {
-                "role": "user",
-                "content": f"Summarize this document:\n\n{content}"
-            }
-        ],
-        temperature=0
-    )
+#     response = client.chat.completions.create(
+#         model="openai/gpt-oss-20b",
+#         messages=[
+#             {
+#                 "role": "system",
+#                 "content": "Summarize the provided document accurately and concisely."
+#             },
+#             {
+#                 "role": "user",
+#                 "content": f"Summarize this document:\n\n{content}"
+#             }
+#         ],
+#         temperature=0
+#     )
 
-    return response.choices[0].message.content or ""
+#     return response.choices[0].message.content or ""
 
 
 def search_local_docs(query: str, documents_dir=None) -> str:

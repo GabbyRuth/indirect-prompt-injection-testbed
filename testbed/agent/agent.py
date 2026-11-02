@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 from groq import Groq
 from .tools import (
     read_file,
-    summarize_document,
     search_local_docs,
     send_message,
     write_file,
@@ -37,23 +36,6 @@ TOOLS = [
         }
     },
     {
-        "type": "function",
-        "function": {
-            "name": "summarize_document",
-            "description": "Read a local document and return a concise summary of its contents.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "filename": {
-                        "type": "string",
-                        "description": "Name of the document to summarize, such as report.txt"
-                    }
-                },
-                    "required": ["filename"]
-            }
-        }
-    },
-        {
     "type": "function",
     "function": {
         "name": "search_local_docs",
@@ -195,8 +177,6 @@ def run_agent(user_task: str, assets_dir = None, defense: str = "baseline") -> s
 
                         if function_name == "read_file":
                             result = read_file(arguments["filename"], assets_dir)
-                        elif function_name == "summarize_document":
-                            result = summarize_document(arguments["filename"], assets_dir)
                         elif function_name == "search_local_docs":
                             result = search_local_docs(arguments["query"], assets_dir)
 
