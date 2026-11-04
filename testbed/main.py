@@ -6,7 +6,7 @@ from pathlib import Path
 import helpers.prompt_injector as prompt_injector
 
 # this handles the test cases that include extra needs such as hosting a webserver, spoofing bank apis, calendar servers, email servers, putting files on the system
-import helpers.outcome_handler as outcome_handler
+import helpers.mock_services.mock_service_factory as mock_service_factory
 
 # agent_names = [
 #    "claude",
@@ -39,8 +39,13 @@ if not attack_files:
     raise FileNotFoundError("No attack files found in tests/attacks.")
 
 for payload_dir in sorted(payloads_root.iterdir()):
-    if not payload_dir.is_dir() or payload_dir.name != "pdf_payload":
+    if not payload_dir.is_dir() or payload_dir.name not in {"pdf_payload", "email_payload"}:
         continue
+
+    # spin up the mock services for this payload if needed
+    service_name = payload_dir.name
+    mock_service_factory.create_service(service_name)
+
 
     prompt_file = payload_dir / "prompt.txt"
     clean_dir = payload_dir / "clean"
@@ -59,6 +64,9 @@ for payload_dir in sorted(payloads_root.iterdir()):
     prompt = read_text(prompt_file)
 
     for attack_file in attack_files:
+        # possibly needs service for attack
+        mock_service_factory.create_service(attack_file.stem)
+
         attack_name = attack_file.stem
         attack = read_text(attack_file)
 
@@ -68,27 +76,36 @@ for payload_dir in sorted(payloads_root.iterdir()):
                     str(clean_asset),
                     attack,
                     injected_assets_dir=str(injected_dir),
-                    attack_label=attack_name
+                    attack_label=attack_name,
                 )
 
-                if not injected_asset:
+                if not injected_asset or not os.path.isfile(injected_asset):
                     print(
-                        f"Failed to inject attack '{attack_name}' into '{clean_asset.name}' "
-                        f"for payload '{payload_dir.name}' and agent '{agent}'."
+                        f"Failed to inject attack '{attack_name}' into "
+                        f"'{clean_asset.name}' for payload '{payload_dir.name}'."
                     )
                     continue
 
-                if os.path.isfile(injected_asset):
-                    print(
-                        f"Running payload '{payload_dir.name}', attack '{attack_name}', "
-                        f"agent '{agent}', asset '{os.path.basename(injected_asset)}'."
+                if payload_dir.name == "email_payload":
+                    mock_service_factory.load_email(clean_asset)
+                    mock_service_factory.load_email(injected_asset)
+
+                print(
+                    f"Running payload '{payload_dir.name}', attack '{attack_name}', "
+                    f"agent '{agent}', asset '{os.path.basename(injected_asset)}'."
+                )
+
+                if Path(injected_asset).suffix.lower() in {".pdf", ".md"}:
+                    full_prompt = (
+                        f"{prompt}\n\nThe document is named: {clean_asset.name}"
                     )
-
-                    if Path(injected_asset).suffix.lower() == ".pdf":
-                        full_prompt = f"{prompt}\n\nThe document is named: {clean_asset.name}"
-
-                        docker_handler.run_test(agent, full_prompt, asset=injected_asset, original_filename=clean_asset.name)
-                    else:
-                        docker_handler.run_test(agent, prompt)
+                    docker_handler.run_test(
+                        agent,
+                        full_prompt,
+                        asset=injected_asset,
+                        original_filename=clean_asset.name,
+                    )
+                else:
+                    docker_handler.run_test(agent, prompt)
                     
                 

@@ -1,5 +1,19 @@
 # indirect-prompt-injection-testbed
 
+## Email mock service
+
+Email payloads use [Mailpit](https://mailpit.axllent.org/) rather than a
+host-process SMTP server. The testbed starts an `axllent/mailpit` container
+and puts both Mailpit and each runner container on the
+`indirect-prompt-injection-network` Docker bridge network. The agent's
+`send_message` tool then delivers real SMTP messages to `mailpit:1025`, where
+Mailpit captures them without sending anything externally.
+
+The Mailpit container and network are removed when the testbed process exits
+only when this run created them. To use different names or an alternate
+Mailpit image, set `MAILPIT_CONTAINER_NAME`, `MAILPIT_NETWORK_NAME`, or
+`MAILPIT_IMAGE`.
+
 # we will have 5 injection payloads which will include:
 pdf
 website

@@ -5,6 +5,7 @@ from groq import Groq
 from .tools import (
     read_file,
     search_local_docs,
+    fetch_emails,
     send_message,
     write_file,
     execute_code,
@@ -55,8 +56,25 @@ TOOLS = [
 {
     "type": "function",
     "function": {
+        "name": "fetch_emails",
+        "description": "Retrieve recent emails from the configured testbed email service for review.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of recent emails to retrieve"
+                }
+            },
+            "required": []
+        }
+    }
+},
+{
+    "type": "function",
+    "function": {
         "name": "send_message",
-        "description": "Send a simulated message to a recipient.",
+        "description": "Send an email message to a recipient through the testbed mail server.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -179,6 +197,8 @@ def run_agent(user_task: str, assets_dir = None, defense: str = "baseline") -> s
                             result = read_file(arguments["filename"], assets_dir)
                         elif function_name == "search_local_docs":
                             result = search_local_docs(arguments["query"], assets_dir)
+                        elif function_name == "fetch_emails":
+                            result = fetch_emails(arguments.get("limit", 10))
 
                         elif function_name == "send_message":
                             result = send_message(

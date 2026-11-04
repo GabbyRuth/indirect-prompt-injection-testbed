@@ -1,9 +1,13 @@
 import os
+import smtplib
 import subprocess
 import sys
+from email.message import EmailMessage
+from email.utils import getaddresses
 import pymupdf
 
 from groq import Groq
+import requests
 from pathlib import Path
 from bs4 import BeautifulSoup
 from icalendar import Calendar
@@ -83,31 +87,6 @@ def read_file(filename: str, documents_dir=None) -> str:
         return f"Error reading file: {e}"
 
 
-# def summarize_document(filename: str, documents_dir=None) -> str:
-#     content = read_file(filename, documents_dir=documents_dir)
-
-#     if content.startswith("Error:"):
-#         return content
-
-#     client = Groq(api_key=os.environ["GROQ_API_KEY"])
-
-#     response = client.chat.completions.create(
-#         model="openai/gpt-oss-20b",
-#         messages=[
-#             {
-#                 "role": "system",
-#                 "content": "Summarize the provided document accurately and concisely."
-#             },
-#             {
-#                 "role": "user",
-#                 "content": f"Summarize this document:\n\n{content}"
-#             }
-#         ],
-#         temperature=0
-#     )
-
-#     return response.choices[0].message.content or ""
-
 
 def search_local_docs(query: str, documents_dir=None) -> str:
     directory = (
@@ -143,11 +122,77 @@ def search_local_docs(query: str, documents_dir=None) -> str:
 
 
 def send_message(recipient: str, message: str) -> str:
-    print(f"\n[SIMULATED MESSAGE]")
-    print(f"To: {recipient}")
-    print(f"Message: {message}")
+    host = os.getenv("SMTP_HOST")
+    port = os.getenv("SMTP_PORT")
+    sender = os.getenv("SMTP_FROM", "testbed@example.invalid")
 
-    return f"Simulated message sent to {recipient}."
+    if not host or not port:
+        return "Error: SMTP service is not configured."
+
+    email = EmailMessage()
+    email["From"] = sender
+    email["To"] = recipient
+    email["Subject"] = "Testbed message"
+    email.set_content(message)
+
+    try:
+        with smtplib.SMTP(host, int(port), timeout=10) as smtp:
+            smtp.send_message(email)
+    except (OSError, smtplib.SMTPException, ValueError) as error:
+        return f"Error sending message: {error}"
+
+    print(f"\n[EMAIL SENT]\nTo: {recipient}\nMessage: {message}")
+    return f"Message sent to {recipient}."
+
+
+def fetch_emails(limit: int = 10) -> str:
+    """Retrieve recent captured emails from the configured Mailpit API."""
+    api_url = os.getenv("MAILPIT_API_URL")
+    if not api_url:
+        return "Error: Email service is not configured."
+
+    try:
+        response = requests.get(
+            f"{api_url.rstrip('/')}/messages",
+            params={"limit": max(1, min(limit, 50))},
+            timeout=10,
+        )
+        response.raise_for_status()
+        messages = response.json().get("messages", [])
+        if not messages:
+            return "No emails found."
+
+        results = []
+        for summary in messages:
+            message_id = summary.get("ID") or summary.get("ID".lower())
+            if not message_id:
+                continue
+
+            detail = requests.get(
+                f"{api_url.rstrip('/')}/message/{message_id}",
+                timeout=10,
+            )
+            detail.raise_for_status()
+            email = detail.json()
+            recipients = getaddresses(
+                email.get("To", []) if isinstance(email.get("To"), list)
+                else [email.get("To", "")]
+            )
+            results.append(
+                "\n".join(
+                    [
+                        f"From: {email.get('From', '')}",
+                        f"To: {', '.join(address for _, address in recipients)}",
+                        f"Subject: {email.get('Subject', '')}",
+                        f"Date: {email.get('Date', '')}",
+                        f"Body:\n{email.get('Text', '')}",
+                    ]
+                )
+            )
+
+        return "\n\n--- EMAIL ---\n\n".join(results) or "No emails found."
+    except (OSError, requests.RequestException, ValueError) as error:
+        return f"Error retrieving emails: {error}"
 
 
 def write_file(filename: str, content: str) -> str:
