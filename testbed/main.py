@@ -87,7 +87,6 @@ for payload_dir in sorted(payloads_root.iterdir()):
                     continue
 
                 if payload_dir.name == "email_payload":
-                    mock_service_factory.load_email(clean_asset)
                     mock_service_factory.load_email(injected_asset)
 
                 print(
