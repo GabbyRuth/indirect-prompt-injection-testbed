@@ -9,7 +9,7 @@ from .tools import (
     write_file,
     execute_code,
 )
-from .defenses import get_system_prompt
+from .defenses import get_system_prompt, apply_allowlist
 from .logger import AgentLogger
 
 load_dotenv()
@@ -166,7 +166,6 @@ def run_agent(user_task: str, assets_dir = None, defense: str = "baseline") -> s
                         arguments = json.loads(
                             tool_call.function.arguments
                         )
-
                         logger.log_event(
                             "tool_request",
                             agent_step=step + 1,
@@ -175,7 +174,9 @@ def run_agent(user_task: str, assets_dir = None, defense: str = "baseline") -> s
                             arguments=arguments
                         )
 
-                        if function_name == "read_file":
+                        if defense == "allowlist" and not apply_allowlist(function_name):
+                            result = f"Error: Tool '{function_name}' is not allowed by the allowlist defense."
+                        elif function_name == "read_file":
                             result = read_file(arguments["filename"], assets_dir)
                         elif function_name == "search_local_docs":
                             result = search_local_docs(arguments["query"], assets_dir)

@@ -7,6 +7,7 @@ from agent.agent import run_agent as run_custom_agent
 
 AGENT_NAME = os.getenv("AGENT_NAME")
 PROMPT = os.getenv("PROMPT")
+DEFENSE = os.getenv("DEFENSE", "baseline")
 
 assets_dir = None
 
@@ -20,7 +21,7 @@ def load_assets():
     else:
         return None
 
-def run_agent(agent_name, prompt, assets_dir=None):
+def run_agent(agent_name, prompt, assets_dir=None, defense="baseline"):
     if agent_name == "claude":
         import anthropic
         client = anthropic.Client(os.getenv("CLAUDE_API_KEY"))
@@ -33,7 +34,7 @@ def run_agent(agent_name, prompt, assets_dir=None):
         return response.completion
     
     elif agent_name == "custom":
-        response = run_custom_agent(prompt, assets_dir, "baseline")
+        response = run_custom_agent(prompt, assets_dir, defense)
         return response
 
 
@@ -44,7 +45,7 @@ def main():
         sys.exit(1)
 
     load_assets()
-    result = run_agent(AGENT_NAME, PROMPT, assets_dir)
+    result = run_agent(AGENT_NAME, PROMPT, assets_dir, DEFENSE)
     print(f"=== Agent '{AGENT_NAME}' Execution Result ===")
     print(result)
 

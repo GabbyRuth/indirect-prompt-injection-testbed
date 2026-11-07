@@ -16,6 +16,17 @@ import helpers.outcome_handler as outcome_handler
 
 agent_names = ["custom"]
 
+# defenses = [
+#     "baseline",
+#     "system_prompt",
+#     "allowlist",
+#     "provenance",
+#     "sensitive_blocking",
+#     "require_approval"
+# ]
+
+defenses = ["system_prompt"]
+
 project_root = Path(__file__).resolve().parent.parent
 payloads_root = project_root / "tests" / "payloads"
 attacks_root = project_root / "tests" / "attacks"
@@ -63,32 +74,33 @@ for payload_dir in sorted(payloads_root.iterdir()):
         attack = read_text(attack_file)
 
         for agent in agent_names:
-            for clean_asset in clean_assets:
-                injected_asset = prompt_injector.inject_attack(
-                    str(clean_asset),
-                    attack,
-                    injected_assets_dir=str(injected_dir),
-                    attack_label=attack_name
-                )
-
-                if not injected_asset:
-                    print(
-                        f"Failed to inject attack '{attack_name}' into '{clean_asset.name}' "
-                        f"for payload '{payload_dir.name}' and agent '{agent}'."
-                    )
-                    continue
-
-                if os.path.isfile(injected_asset):
-                    print(
-                        f"Running payload '{payload_dir.name}', attack '{attack_name}', "
-                        f"agent '{agent}', asset '{os.path.basename(injected_asset)}'."
+            for defense in defenses:
+                for clean_asset in clean_assets:
+                    injected_asset = prompt_injector.inject_attack(
+                        str(clean_asset),
+                        attack,
+                        injected_assets_dir=str(injected_dir),
+                        attack_label=attack_name
                     )
 
-                    if Path(injected_asset).suffix.lower() == ".pdf":
-                        full_prompt = f"{prompt}\n\nThe document is named: {clean_asset.name}"
+                    if not injected_asset:
+                        print(
+                            f"Failed to inject attack '{attack_name}' into '{clean_asset.name}' "
+                            f"for payload '{payload_dir.name}' and agent '{agent}'."
+                        )
+                        continue
 
-                        docker_handler.run_test(agent, full_prompt, asset=injected_asset, original_filename=clean_asset.name)
-                    else:
-                        docker_handler.run_test(agent, prompt)
+                    if os.path.isfile(injected_asset):
+                        print(
+                            f"Running payload '{payload_dir.name}', attack '{attack_name}', "
+                            f"agent '{agent}', asset '{os.path.basename(injected_asset)}'."
+                        )
+
+                        if Path(injected_asset).suffix.lower() == ".pdf":
+                            full_prompt = f"{prompt}\n\nThe document is named: {clean_asset.name}"
+
+                            docker_handler.run_test(agent, full_prompt, asset=injected_asset, original_filename=clean_asset.name, defense=defense)
+                        else:
+                            docker_handler.run_test(agent, prompt, defense=defense)
                     
                 

@@ -18,7 +18,14 @@ SYSTEM_PROMPTS = {
     )
 }
 
-# TODO: Implement allowlist, provenance, sensitive_blocking, and require_approval defenses
+ALLOWED_TOOLS = {
+    "read_file",
+    "search_local_docs",
+    "write_file",
+    "send_message",
+}
+
+# TODO: Implement provenance, sensitive_blocking, and require_approval defenses
 
 def get_system_prompt(defense: str) -> str:
     if defense not in DEFENSES:
@@ -28,3 +35,6 @@ def get_system_prompt(defense: str) -> str:
         defense,
         SYSTEM_PROMPTS["baseline"]
     )
+
+def apply_allowlist(tool_name: str) -> bool:
+    return tool_name in ALLOWED_TOOLS

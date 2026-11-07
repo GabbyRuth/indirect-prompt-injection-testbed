@@ -12,7 +12,8 @@ def run_test(
     agent: str,
     prompt: str,
     asset: Optional[str] = None,
-    original_filename: Optional[str] = None
+    original_filename: Optional[str] = None,
+    defense: str = "baseline"
 ):
     image_tag = "prompt-injection-runner:latest"
 
@@ -54,6 +55,7 @@ def run_test(
             environment={
                 "AGENT_NAME": agent,
                 "PROMPT": prompt,
+                "DEFENSE": defense,
                 "CLAUDE_API_KEY": os.getenv("CLAUDE_API_KEY"),
                 "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
                 "GROQ_API_KEY": os.getenv("GROQ_API_KEY"),
