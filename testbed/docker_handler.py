@@ -1,5 +1,6 @@
 import os
 import docker
+import subprocess
 from typing import Optional
 from pathlib import Path
 from dotenv import load_dotenv
@@ -7,6 +8,15 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 client = docker.from_env()
+
+
+def _run_interactive(container):
+    #attach the host terminal to a running container
+    subprocess.run(
+        ["docker", "attach", "--sig-proxy=false", container.id],
+        check=False,
+    )
+
 
 def run_test(
     agent: str,
@@ -62,16 +72,15 @@ def run_test(
                 "AGENT_LOG_DIR": "/app/logs"
             },
             volumes=volumes if volumes else None,
+            stdin_open=True,
+            tty=True,
             detach=True
         )
 
-        # Wait for completion to capture full execution logs
+        _run_interactive(container)
+
         result = container.wait()
         exit_code = result.get("StatusCode", -1)
-
-        logs = container.logs(stdout=True, stderr=True).decode("utf-8")
-        print(f"=== Execution Completed [Agent: {agent} | Status Code: {exit_code}] ===")
-        print(logs)
 
     except docker.errors.PyDockerError as e:
         print(f"Docker API Error: {e}")
