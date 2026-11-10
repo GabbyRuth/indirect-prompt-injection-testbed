@@ -1,6 +1,7 @@
 import docker_handler as docker_handler
 import os
 from pathlib import Path
+from agent.defenses import get_defense_combinations
 
 # this will dynamically inject our attack randomly into the payload
 import helpers.prompt_injector as prompt_injector
@@ -16,8 +17,11 @@ import helpers.outcome_handler as outcome_handler
 
 agent_names = ["custom"]
 
+# uncomment for baseline defense (no defenses applied)
+# defenses = ["baseline"]
+
+# uncomment for all combinations of defenses
 # defenses = [
-#     "baseline",
 #     "system_prompt",
 #     "allowlist",
 #     "provenance",
@@ -25,7 +29,10 @@ agent_names = ["custom"]
 #     "require_approval"
 # ]
 
-defenses = ["system_prompt"]
+# used for testing
+defenses = ["system_prompt", "provenance"]
+
+defense_combinations = get_defense_combinations(defenses)
 
 project_root = Path(__file__).resolve().parent.parent
 payloads_root = project_root / "tests" / "payloads"
@@ -74,7 +81,7 @@ for payload_dir in sorted(payloads_root.iterdir()):
         attack = read_text(attack_file)
 
         for agent in agent_names:
-            for defense in defenses:
+            for defense in defense_combinations:
                 for clean_asset in clean_assets:
                     injected_asset = prompt_injector.inject_attack(
                         str(clean_asset),

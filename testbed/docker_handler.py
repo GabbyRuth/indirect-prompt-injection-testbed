@@ -1,6 +1,7 @@
 import os
 import docker
 import subprocess
+import json
 from typing import Optional
 from pathlib import Path
 from dotenv import load_dotenv
@@ -23,7 +24,7 @@ def run_test(
     prompt: str,
     asset: Optional[str] = None,
     original_filename: Optional[str] = None,
-    defense: str = "baseline"
+    defense: tuple[str, ...] | str = "baseline"
 ):
     image_tag = "prompt-injection-runner:latest"
 
@@ -65,7 +66,9 @@ def run_test(
             environment={
                 "AGENT_NAME": agent,
                 "PROMPT": prompt,
-                "DEFENSE": defense,
+                "DEFENSE": json.dumps(
+                    [defense] if isinstance(defense, str) else list(defense)
+                ),
                 "CLAUDE_API_KEY": os.getenv("CLAUDE_API_KEY"),
                 "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
                 "GROQ_API_KEY": os.getenv("GROQ_API_KEY"),

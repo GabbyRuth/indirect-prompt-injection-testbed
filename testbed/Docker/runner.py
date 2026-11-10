@@ -1,13 +1,14 @@
 # here we will read the env variables from docker, then run the agent with the prompt and test case dir
 import os
 import sys
+import json
 from pathlib import Path
 
 from agent.agent import run_agent as run_custom_agent
 
 AGENT_NAME = os.getenv("AGENT_NAME")
 PROMPT = os.getenv("PROMPT")
-DEFENSE = os.getenv("DEFENSE", "baseline")
+DEFENSE = json.loads(os.getenv("DEFENSE", '["baseline"]'))
 
 assets_dir = None
 

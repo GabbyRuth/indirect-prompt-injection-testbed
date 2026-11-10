@@ -15,6 +15,8 @@ from .defenses import (
     apply_sensitive_blocking,
     get_system_prompt,
     apply_require_approval,
+    normalize_defenses,
+    DefenseSelection,
 )
 from .logger import AgentLogger
 
@@ -121,13 +123,19 @@ TOOLS = [
 
 MAX_STEPS = 20
 
-def run_agent(user_task: str, assets_dir = None, defense: str = "baseline") -> str:
+def run_agent(
+    user_task: str,
+    assets_dir=None,
+    defense: DefenseSelection = "baseline",
+) -> str:
+    normalized_defenses = normalize_defenses(defense)
+    active_defenses = set(normalized_defenses)
     logger = AgentLogger(MODEL, user_task, defense, max_steps=MAX_STEPS)
 
     messages = [
         {
             "role": "system",
-            "content": get_system_prompt(defense)
+            "content": get_system_prompt(normalized_defenses)
         },
         {
             "role": "user",
@@ -180,9 +188,7 @@ def run_agent(user_task: str, assets_dir = None, defense: str = "baseline") -> s
                             arguments=arguments
                         )
 
-                        #if (defense == "require_approval" and not apply_require_approval(function_name, arguments)):
-                            #result = (f"Error: Tool request '{function_name}' requires approval and was blocked.")
-                        if defense == "require_approval":
+                        if "require_approval" in active_defenses:
                             approved = apply_require_approval(function_name, arguments)
 
                             if function_name in {"execute_code", "send_message", "write_file"}:
@@ -195,11 +201,11 @@ def run_agent(user_task: str, assets_dir = None, defense: str = "baseline") -> s
                                 )
                         else:
                             approved = True
-                        if defense == "require_approval" and not approved:
+                        if "require_approval" in active_defenses and not approved:
                             result = f"Error: Tool request '{function_name}' requires approval and was blocked."
-                        elif (defense == "sensitive_blocking" and not apply_sensitive_blocking(function_name, arguments)):
+                        elif ("sensitive_blocking" in active_defenses and not apply_sensitive_blocking(function_name, arguments)):
                             result = (f"Error: Tool request '{function_name}' is sensitive and was blocked.")
-                        elif defense == "allowlist" and not apply_allowlist(function_name):
+                        elif "allowlist" in active_defenses and not apply_allowlist(function_name):
                             result = f"Error: Tool '{function_name}' is not allowed by the allowlist defense."
                         elif function_name == "read_file":
                             result = read_file(arguments["filename"], assets_dir)
@@ -224,7 +230,7 @@ def run_agent(user_task: str, assets_dir = None, defense: str = "baseline") -> s
                     except Exception as e:
                         result = f"Error executing tool: {e}"
                     
-                    if (defense == "provenance" and function_name in {"read_file", "search_local_docs"} and not result.startswith("Error:")):
+                    if ("provenance" in active_defenses and function_name in {"read_file", "search_local_docs"} and not result.startswith("Error:")):
                         result = apply_provenance(function_name, result)
 
                     logger.log_event(

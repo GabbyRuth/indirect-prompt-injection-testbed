@@ -1,5 +1,6 @@
 import re
 from collections.abc import Mapping
+from itertools import combinations
 
 
 DEFENSES = {
@@ -73,14 +74,35 @@ SENSITIVE_WRITE_TERMS = {
     "transfer",
 }
 
-def get_system_prompt(defense: str) -> str:
-    if defense not in DEFENSES:
-        raise ValueError(f"Unknown defense: {defense}")
+DefenseSelection = str | list[str] | tuple[str, ...]
 
-    return SYSTEM_PROMPTS.get(
-        defense,
-        SYSTEM_PROMPTS["baseline"]
-    )
+
+def normalize_defenses(defense: DefenseSelection) -> tuple[str, ...]:
+    defenses = (defense,) if isinstance(defense, str) else tuple(defense)
+
+    unknown = set(defenses) - DEFENSES
+    if unknown:
+        raise ValueError(f"Unknown defenses: {unknown}")
+
+    return defenses
+
+
+def get_defense_combinations(defenses: DefenseSelection) -> list[tuple[str, ...]]:
+    selected_defenses = normalize_defenses(defenses)
+    return [
+        combo
+        for size in range(1, len(selected_defenses) + 1)
+        for combo in combinations(selected_defenses, size)
+    ]
+
+
+def get_system_prompt(defense: DefenseSelection) -> str:
+    defenses = set(normalize_defenses(defense))
+
+    if "system_prompt" in defenses:
+        return SYSTEM_PROMPTS["system_prompt"]
+
+    return SYSTEM_PROMPTS["baseline"]
 
 
 def apply_allowlist(tool_name: str) -> bool:
