@@ -25,7 +25,7 @@ agent_names = ["custom"]
 #     "require_approval"
 # ]
 
-defenses = ["require_approval"]
+defenses = ["system_prompt"]
 
 project_root = Path(__file__).resolve().parent.parent
 payloads_root = project_root / "tests" / "payloads"
