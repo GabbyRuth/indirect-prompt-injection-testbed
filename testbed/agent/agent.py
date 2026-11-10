@@ -9,7 +9,15 @@ from .tools import (
     write_file,
     execute_code,
 )
-from .defenses import get_system_prompt
+from .defenses import (
+    apply_allowlist,
+    apply_provenance,
+    apply_sensitive_blocking,
+    get_system_prompt,
+    apply_require_approval,
+    normalize_defenses,
+    DefenseSelection,
+)
 from .logger import AgentLogger
 
 load_dotenv()
@@ -115,13 +123,19 @@ TOOLS = [
 
 MAX_STEPS = 20
 
-def run_agent(user_task: str, assets_dir = None, defense: str = "baseline") -> str:
-    logger = AgentLogger(MODEL, user_task, defense, max_steps=10)
+def run_agent(
+    user_task: str,
+    assets_dir=None,
+    defense: DefenseSelection = "baseline",
+) -> str:
+    normalized_defenses = normalize_defenses(defense)
+    active_defenses = set(normalized_defenses)
+    logger = AgentLogger(MODEL, user_task, defense, max_steps=MAX_STEPS)
 
     messages = [
         {
             "role": "system",
-            "content": get_system_prompt(defense)
+            "content": get_system_prompt(normalized_defenses)
         },
         {
             "role": "user",
@@ -166,7 +180,6 @@ def run_agent(user_task: str, assets_dir = None, defense: str = "baseline") -> s
                         arguments = json.loads(
                             tool_call.function.arguments
                         )
-
                         logger.log_event(
                             "tool_request",
                             agent_step=step + 1,
@@ -175,7 +188,26 @@ def run_agent(user_task: str, assets_dir = None, defense: str = "baseline") -> s
                             arguments=arguments
                         )
 
-                        if function_name == "read_file":
+                        if "require_approval" in active_defenses:
+                            approved = apply_require_approval(function_name, arguments)
+
+                            if function_name in {"execute_code", "send_message", "write_file"}:
+                                logger.log_event(
+                                    "approval_decision",
+                                    agent_step=step + 1,
+                                    tool_call_id=tool_call.id,
+                                    tool=function_name,
+                                    approved=approved
+                                )
+                        else:
+                            approved = True
+                        if "require_approval" in active_defenses and not approved:
+                            result = f"Error: Tool request '{function_name}' requires approval and was blocked."
+                        elif ("sensitive_blocking" in active_defenses and not apply_sensitive_blocking(function_name, arguments)):
+                            result = (f"Error: Tool request '{function_name}' is sensitive and was blocked.")
+                        elif "allowlist" in active_defenses and not apply_allowlist(function_name):
+                            result = f"Error: Tool '{function_name}' is not allowed by the allowlist defense."
+                        elif function_name == "read_file":
                             result = read_file(arguments["filename"], assets_dir)
                         elif function_name == "search_local_docs":
                             result = search_local_docs(arguments["query"], assets_dir)
@@ -197,6 +229,9 @@ def run_agent(user_task: str, assets_dir = None, defense: str = "baseline") -> s
 
                     except Exception as e:
                         result = f"Error executing tool: {e}"
+                    
+                    if ("provenance" in active_defenses and function_name in {"read_file", "search_local_docs"} and not result.startswith("Error:")):
+                        result = apply_provenance(function_name, result)
 
                     logger.log_event(
                         "tool_result",
