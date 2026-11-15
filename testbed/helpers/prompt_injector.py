@@ -78,17 +78,6 @@ def inject_attack_into_pdf(asset, attack, injected_assets_dir=None, attack_label
         writer.write(out_file)
     return injected_pdf_path
 
-# def inject_attack_into_html(asset, attack, injected_assets_dir=None, attack_label=None):
-#     with open(asset, "r") as f:
-#         html_content = f.read()
-
-#     modified_html_content = html_content + f"\n<!-- Injected payload: {attack} -->"
-
-#     injected_html_path = get_injected_asset_path(asset, injected_assets_dir, attack_label)
-#     with open(injected_html_path, "w") as f:
-#         f.write(modified_html_content)
-
-#     return injected_html_path
 
 def inject_attack_into_html(asset, attack, injected_assets_dir=None, attack_label=None):
     from bs4 import BeautifulSoup
@@ -99,7 +88,7 @@ def inject_attack_into_html(asset, attack, injected_assets_dir=None, attack_labe
     soup = BeautifulSoup(html_content, "html.parser")
 
     injected_element = soup.new_tag("p")
-    injected_element.string = f"Injected payload: {attack}"
+    injected_element.string = f"{attack}"
 
     if soup.body:
         soup.body.append(injected_element)
@@ -120,7 +109,7 @@ def inject_attack_into_email(asset, attack, injected_assets_dir=None, attack_lab
         email_content = f.read()
         
 
-    modified_email_content = email_content + f"\n\nInjected payload: {attack}"
+    modified_email_content = email_content + f"\n\n{attack}"
 
     injected_email_path = get_injected_asset_path(asset, injected_assets_dir, attack_label)
     with open(injected_email_path, "w") as f:
@@ -128,17 +117,6 @@ def inject_attack_into_email(asset, attack, injected_assets_dir=None, attack_lab
 
     return injected_email_path
 
-# def inject_attack_into_calendar(asset, attack, injected_assets_dir=None, attack_label=None):
-#     with open(asset, "r") as f:
-#         calendar_content = f.read()
-
-#     modified_calendar_content = calendar_content + f"\n\nInjected payload: {attack}"
-
-#     injected_calendar_path = get_injected_asset_path(asset, injected_assets_dir, attack_label)
-#     with open(injected_calendar_path, "w") as f:
-#         f.write(modified_calendar_content)
-
-#     return injected_calendar_path
 
 def inject_attack_into_calendar(asset, attack, injected_assets_dir=None, attack_label=None):
     # Parse the original calendar file
@@ -163,7 +141,7 @@ def inject_attack_into_claude_markdown(asset, attack, injected_assets_dir=None, 
     with open(asset, "r") as f:
         markdown_content = f.read()
 
-    modified_markdown_content = markdown_content + f"\n\nInjected payload: {attack}"
+    modified_markdown_content = markdown_content + f"\n\n{attack}"
 
     injected_markdown_path = get_injected_asset_path(asset, injected_assets_dir, attack_label)
     with open(injected_markdown_path, "w") as f:
@@ -198,23 +176,3 @@ def inject_attack(asset, attack, injected_assets_dir=None, attack_label=None):
         return None
 
 
-
-# test all paths
-# if __name__ == "__main__":
-#     test_assets = [
-#         "tests/payloads/pdf_payload/clean/pdf-sample_0.pdf",
-#         "tests/payloads/html_payload/clean/ai-research-overview.html",
-#         "tests/payloads/email_payload/clean/email-shipping-update.txt",
-#         "tests/payloads/calendar_payload/clean/calendar-invite-quarterly-planning.ics",
-#         "tests/payloads/claude_payload/clean/claude.md"
-#     ]
-
-#     attack_payload = "This is a test payload for injection."
-
-#     for asset in test_assets:
-#         injected_asset_path = inject_attack(asset, attack_payload)
-#         if injected_asset_path:
-#             print(f"Injected payload into '{asset}' and saved to '{injected_asset_path}'.")
-#         else:
-#             print(f"Failed to inject payload into '{asset}'.")
-        

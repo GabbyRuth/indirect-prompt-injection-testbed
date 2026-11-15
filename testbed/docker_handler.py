@@ -9,6 +9,10 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 client = docker.from_env()
+RUNNER_NETWORK_NAME = os.getenv(
+    "MAILPIT_NETWORK_NAME",
+    "indirect-prompt-injection-network",
+)
 
 
 def _run_interactive(container):
@@ -60,21 +64,42 @@ def run_test(
 
     container = None
     try:
+        environment = {
+            "AGENT_NAME": agent,
+            "PROMPT": prompt,
+            "DEFENSE": json.dumps(
+                [defense] if isinstance(defense, str) else list(defense)
+            ),
+            "CLAUDE_API_KEY": os.getenv("CLAUDE_API_KEY"),
+            "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
+            "GROQ_API_KEY": os.getenv("GROQ_API_KEY"),
+            "AGENT_LOG_DIR": "/app/logs",
+        }
+
+        try:
+            client.networks.get(RUNNER_NETWORK_NAME)
+            network = RUNNER_NETWORK_NAME
+        except docker.errors.NotFound:
+            network = None
+
+        if network:
+            if __package__:
+                from testbed.helpers.mock_services.email.email_handler import (
+                    runner_environment,
+                )
+            else:
+                from helpers.mock_services.email.email_handler import (
+                    runner_environment,
+                )
+
+            environment.update(runner_environment())
+
         # Spin up isolated container with targeted env vars and volume
         container = client.containers.run(
             image=image_tag,
-            environment={
-                "AGENT_NAME": agent,
-                "PROMPT": prompt,
-                "DEFENSE": json.dumps(
-                    [defense] if isinstance(defense, str) else list(defense)
-                ),
-                "CLAUDE_API_KEY": os.getenv("CLAUDE_API_KEY"),
-                "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
-                "GROQ_API_KEY": os.getenv("GROQ_API_KEY"),
-                "AGENT_LOG_DIR": "/app/logs"
-            },
+            environment=environment,
             volumes=volumes if volumes else None,
+            network=network,
             stdin_open=True,
             tty=True,
             detach=True
@@ -85,7 +110,11 @@ def run_test(
         result = container.wait()
         exit_code = result.get("StatusCode", -1)
 
-    except docker.errors.PyDockerError as e:
+        logs = container.logs(stdout=True, stderr=True).decode("utf-8")
+        print(f"=== Execution Completed [Agent: {agent} | Status Code: {exit_code}] ===")
+        print(logs)
+
+    except docker.errors.DockerException as e:
         print(f"Docker API Error: {e}")
     finally:
         # Clean up container safely
