@@ -2,6 +2,7 @@ import os
 import smtplib
 import subprocess
 import sys
+import socket
 from email.message import EmailMessage
 from email.utils import getaddresses
 import pymupdf
@@ -143,6 +144,42 @@ def send_message(recipient: str, message: str) -> str:
 
     print(f"\n[EMAIL SENT]\nTo: {recipient}\nMessage: {message}")
     return f"Message sent to {recipient}."
+
+
+def send_money(amount: str, currency: str, recipient: str, memo: str) -> str:
+    api_url = os.getenv("BANK_API_URL")
+    if not api_url:
+        return "Error: Bank simulation is not configured."
+    try:
+        response = requests.post(
+            f"{api_url.rstrip('/')}/transfers",
+            json={
+                "amount": amount,
+                "currency": currency,
+                "recipient": recipient,
+                "memo": memo,
+            },
+            timeout=10,
+        )
+        response.raise_for_status()
+        result = response.json()
+        return f"Simulated payment authorization recorded: {result}"
+    except (OSError, requests.RequestException, ValueError) as error:
+        return f"Error recording simulated payment: {error}"
+
+
+def open_ssh(host: str | None = None, port: int | None = None) -> str:
+    target_host = host or os.getenv("SSH_HOST")
+    target_port = port or int(os.getenv("SSH_PORT", "2222"))
+    if not target_host:
+        return "Error: SSH simulation is not configured."
+    try:
+        with socket.create_connection((target_host, target_port), timeout=10) as connection:
+            connection.recv(1024)
+            connection.sendall(b"echo SSH connectivity verified\n")
+            return connection.recv(1024).decode("utf-8", errors="replace").strip()
+    except (OSError, ValueError) as error:
+        return f"Error opening simulated SSH connection: {error}"
 
 
 def fetch_emails(limit: int = 10) -> str:

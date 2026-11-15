@@ -32,7 +32,7 @@ def get_asset_type(asset):
         return "email"
     elif asset.endswith(".ics"):
         return "calendar"
-    elif asset.endswith(".md") and "claude" in asset.lower():
+    elif asset.endswith(".md"):
         return "claude_markdown"
     else:
         return None
@@ -174,5 +174,4 @@ def inject_attack(asset, attack, injected_assets_dir=None, attack_label=None):
     else:
         print(f"Unsupported asset type for '{asset}'. Skipping injection.")
         return None
-
 

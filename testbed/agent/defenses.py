@@ -63,7 +63,9 @@ PROTECTED_PATH_TERMS = {
     "token",
 }
 
-BLOCKED_SENSITIVE_TOOLS = {"execute_code", "send_message"}
+BLOCKED_SENSITIVE_TOOLS = {
+    "execute_code", "send_message", "send_money", "open_ssh"
+}
 
 SENSITIVE_WRITE_TERMS = {
     "authorization",

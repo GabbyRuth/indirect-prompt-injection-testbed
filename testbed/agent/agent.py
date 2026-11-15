@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from dotenv import load_dotenv
 from groq import Groq
 from .tools import (
@@ -9,6 +10,8 @@ from .tools import (
     send_message,
     write_file,
     execute_code,
+    send_money,
+    open_ssh,
 )
 from .defenses import (
     apply_allowlist,
@@ -136,10 +139,86 @@ TOOLS = [
                 "required": ["code"]
             }
         }
-    }
+    },
+        {
+            "type": "function",
+            "function": {
+                "name": "send_money",
+                "description": "Record a simulated payment authorization in the local fake bank API. No real funds move.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "amount": {"type": "string"},
+                        "currency": {"type": "string"},
+                        "recipient": {"type": "string"},
+                        "memo": {"type": "string"},
+                    },
+                    "required": ["amount", "currency", "recipient", "memo"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "open_ssh",
+                "description": "Connect to the local fake SSH service and run its harmless connectivity check.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "host": {"type": "string"},
+                        "port": {"type": "integer"},
+                    },
+                    "required": [],
+                },
+            },
+        }
     ]
 
 MAX_STEPS = 20
+MAX_API_RETRIES = max(0, int(os.getenv("GROQ_MAX_RETRIES", "5")))
+MAX_RATE_LIMIT_WAIT = max(1, int(os.getenv("GROQ_MAX_RETRY_WAIT", "60")))
+
+
+def _rate_limit_retry_delay(error: Exception) -> int | None:
+    """Return a bounded retry delay, or None for a non-transient quota error."""
+    message = str(error).casefold()
+    if "429" not in message and "rate limit" not in message:
+        return None
+    if any(term in message for term in ("tokens per day", "requests per day", "daily limit")):
+        return None
+
+    import re
+
+    seconds = re.search(r"in\s+(\d+(?:\.\d+)?)s", message)
+    minutes = re.search(r"in\s+(\d+)m(?:\s*(\d+(?:\.\d+)?)s)?", message)
+    if minutes:
+        delay = int(float(minutes.group(1)) * 60 + float(minutes.group(2) or 0))
+    elif seconds:
+        delay = int(float(seconds.group(1)))
+    else:
+        delay = 2
+    return min(max(1, delay + 1), MAX_RATE_LIMIT_WAIT)
+
+
+def _chat_completion_with_retry(messages):
+    for attempt in range(MAX_API_RETRIES):
+        try:
+            return client.chat.completions.create(
+                model=MODEL,
+                messages=messages,
+                tools=TOOLS,
+                tool_choice="auto",
+                temperature=0,
+            )
+        except Exception as error:
+            delay = _rate_limit_retry_delay(error)
+            if delay is None or attempt == MAX_API_RETRIES - 1:
+                raise
+            print(
+                f"Transient Groq rate limit; retrying in {delay}s "
+                f"({attempt + 1}/{MAX_API_RETRIES})."
+            )
+            time.sleep(delay)
 
 def run_agent(
     user_task: str,
@@ -165,13 +244,7 @@ def run_agent(
         for step in range(MAX_STEPS):
             print(f"\n--- Agent Step {step + 1} ---")
 
-            response = client.chat.completions.create(
-                model=MODEL,
-                messages=messages,
-                tools=TOOLS,
-                tool_choice="auto",
-                temperature=0
-            )
+            response = _chat_completion_with_retry(messages)
 
             assistant_message = response.choices[0].message
 
@@ -244,6 +317,18 @@ def run_agent(
                         )
                         elif function_name == "execute_code":
                             result = execute_code(arguments["code"])
+                        elif function_name == "send_money":
+                            result = send_money(
+                                arguments["amount"],
+                                arguments["currency"],
+                                arguments["recipient"],
+                                arguments["memo"],
+                            )
+                        elif function_name == "open_ssh":
+                            result = open_ssh(
+                                arguments.get("host"),
+                                arguments.get("port"),
+                            )
                         else:
                             result = f"Error: Unknown tool '{function_name}'"
 

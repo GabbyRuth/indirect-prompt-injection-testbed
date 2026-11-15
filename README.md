@@ -20,6 +20,25 @@ seeding or choose a different number. Payload emails are added afterward, so
 the clean and injected test messages remain available alongside the synthetic
 inbox.
 
+## Mock services and runner fixtures
+
+The testbed uses the same Docker bridge network for all simulated services:
+
+- Calendar files: `fake-calendar:8090`
+- HTML files: `fake-website:8091`
+- Payment authorizations: `fake-bank:8081` (`POST /transfers`)
+- SSH connectivity checks: `fake-ssh:2222`
+
+The calendar and website services serve the current payload's injected
+directory. The bank endpoint only records a JSON authorization request and
+returns `"simulation": true`; it never contacts a payment provider. The SSH
+service is a small synthetic TCP endpoint and does not provide a shell.
+
+Each runner mounts the selected asset at `/app/assets/<name>`, along with the
+benign [`agents.md`](tests/payloads/agent_payload/clean/agents.md) and the
+synthetic [`password.txt`](tests/fixtures/password.txt). All payload
+directories and attack files are processed by `testbed/main.py`.
+
 A  research testbed for evaluating how AI agents respond to indirect prompt injection attacks and measuring the effectiveness of different defense mechanisms.
 
 # Overview

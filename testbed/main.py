@@ -1,6 +1,7 @@
 import docker_handler as docker_handler
 import os
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from agent.defenses import get_defense_combinations
 
 # this will dynamically inject our attack randomly into the payload
@@ -37,6 +38,7 @@ agent_names = ["custom"]
 defenses = ["system_prompt", "provenance"]
 
 defense_combinations = get_defense_combinations(defenses)
+MAX_WORKERS = max(1, int(os.getenv("TESTBED_MAX_WORKERS", "2")))
 
 project_root = Path(__file__).resolve().parent.parent
 payloads_root = project_root / "tests" / "payloads"
@@ -55,13 +57,21 @@ def iter_files(path: Path):
 if not payloads_root.exists() or not attacks_root.exists():
     raise FileNotFoundError("Expected tests/payloads and tests/attacks directories.")
 
-#attack_files = sorted(attacks_root.glob("*.txt"))
-attack_files = sorted(attacks_root.glob("*.txt"))[:1]
+attack_files = sorted(attacks_root.glob("*.txt"))
 if not attack_files:
     raise FileNotFoundError("No attack files found in tests/attacks.")
 
+docker_handler.build_runner_image()
+
+for service_name in ("email_payload", "calendar_payload", "html_payload"):
+    mock_service_factory.create_service(service_name)
+
+for attack_file in attack_files:
+    mock_service_factory.create_service(attack_file.stem)
+
+jobs = []
 for payload_dir in sorted(payloads_root.iterdir()):
-    if not payload_dir.is_dir() or payload_dir.name not in {"pdf_payload", "email_payload"}:
+    if not payload_dir.is_dir():
         continue
 
     # spin up the mock services for this payload if needed
@@ -78,6 +88,7 @@ for payload_dir in sorted(payloads_root.iterdir()):
         continue
 
     injected_dir.mkdir(parents=True, exist_ok=True)
+    mock_service_factory.create_service(payload_dir.name, str(injected_dir))
     clean_assets = iter_files(clean_dir)
     if not clean_assets:
         print(f"Skipping payload '{payload_dir.name}' (no files in clean/).")
@@ -86,9 +97,6 @@ for payload_dir in sorted(payloads_root.iterdir()):
     prompt = read_text(prompt_file)
 
     for attack_file in attack_files:
-        # possibly needs service for attack
-        mock_service_factory.create_service(attack_file.stem)
-
         attack_name = attack_file.stem
         attack = read_text(attack_file)
 
@@ -109,26 +117,40 @@ for payload_dir in sorted(payloads_root.iterdir()):
                         )
                         continue
 
+                    full_prompt = f"{prompt}\n\nThe document is named: {clean_asset.name}"
                     load_assets(payload_dir, injected_asset)
-
-                    print(
-                        f"Running payload '{payload_dir.name}', attack '{attack_name}', "
-                        f"agent '{agent}', defense '{defense}', "
-                        f"asset '{os.path.basename(injected_asset)}'."
+                    jobs.append(
+                        (
+                            payload_dir.name,
+                            attack_name,
+                            agent,
+                            defense,
+                            clean_asset.name,
+                            injected_asset,
+                            full_prompt,
+                        )
                     )
 
-                    if Path(injected_asset).suffix.lower() in {".pdf", ".md"}:
-                        full_prompt = (
-                            f"{prompt}\n\nThe document is named: {clean_asset.name}"
-                        )
-                        docker_handler.run_test(
-                            agent,
-                            full_prompt,
-                            asset=injected_asset,
-                            original_filename=clean_asset.name,
-                            defense=defense,
-                        )
-                    else:
-                        docker_handler.run_test(agent, prompt, defense=defense)
+
+def run_job(job):
+    payload_name, attack_name, agent, defense, asset_name, asset, prompt = job
+    print(
+        f"Running payload '{payload_name}', attack '{attack_name}', "
+        f"agent '{agent}', defense '{defense}', asset '{asset_name}'."
+    )
+    docker_handler.run_test(
+        agent,
+        prompt,
+        asset=asset,
+        original_filename=asset_name,
+        defense=defense,
+    )
+
+
+print(f"Running {len(jobs)} jobs with {MAX_WORKERS} workers.")
+with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+    futures = [executor.submit(run_job, job) for job in jobs]
+    for future in as_completed(futures):
+        future.result()
                     
                 
