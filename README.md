@@ -37,5 +37,5 @@ Five defense mechanisms are evaluated individually and in combination:
 5. Require approval for risky operations - Requires independent authorization before sensitive tool calls execute.
 
 
-# Project status
+# Project Status
 This project is under active developement.
