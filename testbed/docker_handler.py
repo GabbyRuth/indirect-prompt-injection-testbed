@@ -1,8 +1,11 @@
 import os
 import docker
 import json
+import re
+import shutil
 from typing import Optional
 from pathlib import Path
+from uuid import uuid4
 from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
@@ -13,6 +16,21 @@ RUNNER_NETWORK_NAME = os.getenv(
     "indirect-prompt-injection-network",
 )
 IMAGE_TAG = "prompt-injection-runner:latest"
+
+
+def _result_filename(
+    attack_name: str,
+    payload_name: str,
+    defense: tuple[str, ...] | str,
+) -> str:
+    defense_name = "-".join(defense) if isinstance(defense, tuple) else defense
+    parts = (attack_name, payload_name, defense_name)
+    safe_parts = [
+        re.sub(r"[^A-Za-z0-9._-]+", "_", part).strip(" ._")
+        or "unknown"
+        for part in parts
+    ]
+    return "-".join(safe_parts) + ".json"
 
 
 def build_runner_image() -> None:
@@ -31,7 +49,9 @@ def run_test(
     prompt: str,
     asset: Optional[str] = None,
     original_filename: Optional[str] = None,
-    defense: tuple[str, ...] | str = "baseline"
+    defense: tuple[str, ...] | str = "baseline",
+    payload_name: Optional[str] = None,
+    attack_name: Optional[str] = None,
 ):
     #  Resolve absolute path for isolated asset mounting
     volumes = {}
@@ -62,10 +82,15 @@ def run_test(
     logs_dir = Path(__file__).resolve().parent.parent / "logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
 
-    volumes[str(logs_dir)] = {
+    run_logs_dir = logs_dir / f".run-{uuid4().hex}"
+    run_logs_dir.mkdir()
+    volumes[str(run_logs_dir)] = {
         "bind": "/app/logs",
         "mode": "rw"
     }
+    results_dir = Path(__file__).resolve().parent.parent / "evaluation_results"
+    results_dir.mkdir(parents=True, exist_ok=True)
+    volumes[str(results_dir)] = {"bind": "/app/evaluation_results", "mode": "rw"}
 
 
     container = None
@@ -80,6 +105,9 @@ def run_test(
             "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
             "GROQ_API_KEY": os.getenv("GROQ_API_KEY"),
             "AGENT_LOG_DIR": "/app/logs",
+            "PAYLOAD_NAME": payload_name or "",
+            "ATTACK_NAME": attack_name or "",
+            "ASSET_NAME": original_filename or "",
         }
 
         try:
@@ -143,6 +171,18 @@ def run_test(
         logs = container.logs(stdout=True, stderr=True).decode("utf-8")
         print(f"=== Execution Completed [Agent: {agent} | Status Code: {exit_code}] ===")
         print(logs)
+        source_logs = list(run_logs_dir.glob("*.json"))
+        if source_logs:
+            source_log = source_logs[0]
+            final_log = logs_dir / source_log.name
+            shutil.copyfile(source_log, final_log)
+            if payload_name and attack_name:
+                result_filename = _result_filename(
+                    attack_name,
+                    payload_name,
+                    defense,
+                )
+                shutil.copyfile(source_log, results_dir / result_filename)
 
     except docker.errors.DockerException as e:
         print(f"Docker API Error: {e}")
@@ -153,3 +193,4 @@ def run_test(
                 container.remove(force=True)
             except docker.errors.NotFound:
                 pass
+        shutil.rmtree(run_logs_dir, ignore_errors=True)

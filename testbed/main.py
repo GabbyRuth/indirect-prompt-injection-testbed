@@ -26,16 +26,17 @@ agent_names = ["custom"]
 # defenses = ["baseline"]
 
 # uncomment for all combinations of defenses
-# defenses = [
-#     "system_prompt",
-#     "allowlist",
-#     "provenance",
-#     "sensitive_blocking",
-#     "require_approval"
-# ]
+defenses = [
+    "system_prompt",
+    "allowlist",
+    "provenance",
+    "sensitive_blocking",
+    "require_approval"
+]
 
 # used for testing
-defenses = ["system_prompt", "provenance"]
+# defenses = ["system_prompt", "provenance"]
+# defenses = ["baseline"]
 
 defense_combinations = get_defense_combinations(defenses)
 MAX_WORKERS = max(1, int(os.getenv("TESTBED_MAX_WORKERS", "2")))
@@ -144,6 +145,8 @@ def run_job(job):
         asset=asset,
         original_filename=asset_name,
         defense=defense,
+        payload_name=payload_name,
+        attack_name=attack_name,
     )
 
 

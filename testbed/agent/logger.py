@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
+from .evaluator import add_evaluation
+
 LOG_DIR = Path(os.getenv("AGENT_LOG_DIR", str(Path(__file__).resolve().parents[2] / "logs")))
 
 
@@ -19,6 +21,9 @@ class AgentLogger:
             "model": model,
             "user_task": user_task,
             "defense": defense,
+            "payload": os.getenv("PAYLOAD_NAME"),
+            "attack": os.getenv("ATTACK_NAME"),
+            "asset": os.getenv("ASSET_NAME"),
             "max_steps": max_steps,
             "events": [],
             "final_answer": None,
@@ -42,6 +47,7 @@ class AgentLogger:
         self.data["status"] = status
         self.data["final_answer"] = final_answer
         self.data["finished_at"] = datetime.now(timezone.utc).isoformat()
+        add_evaluation(self.data)
         self.save()
 
     def save(self):
