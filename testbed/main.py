@@ -39,7 +39,7 @@ defenses = [
 # defenses = ["baseline"]
 
 defense_combinations = get_defense_combinations(defenses)
-MAX_WORKERS = max(1, int(os.getenv("TESTBED_MAX_WORKERS", "2")))
+MAX_WORKERS = 3
 
 project_root = Path(__file__).resolve().parent.parent
 payloads_root = project_root / "tests" / "payloads"

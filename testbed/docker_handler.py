@@ -23,7 +23,7 @@ def _result_filename(
     payload_name: str,
     defense: tuple[str, ...] | str,
 ) -> str:
-    defense_name = "-".join(defense) if isinstance(defense, tuple) else defense
+    defense_name = _defense_directory(defense)
     parts = (attack_name, payload_name, defense_name)
     safe_parts = [
         re.sub(r"[^A-Za-z0-9._-]+", "_", part).strip(" ._")
@@ -31,6 +31,15 @@ def _result_filename(
         for part in parts
     ]
     return "-".join(safe_parts) + ".json"
+
+
+def _defense_directory(defense: tuple[str, ...] | str) -> str:
+    defense_names = defense if isinstance(defense, tuple) else (defense,)
+    return re.sub(
+        r"[^A-Za-z0-9._-]+",
+        "_",
+        "-".join(defense_names),
+    ).strip(" ._") or "unknown"
 
 
 def build_runner_image() -> None:
@@ -171,18 +180,23 @@ def run_test(
         logs = container.logs(stdout=True, stderr=True).decode("utf-8")
         print(f"=== Execution Completed [Agent: {agent} | Status Code: {exit_code}] ===")
         print(logs)
-        source_logs = list(run_logs_dir.glob("*.json"))
-        if source_logs:
-            source_log = source_logs[0]
-            final_log = logs_dir / source_log.name
-            shutil.copyfile(source_log, final_log)
-            if payload_name and attack_name:
-                result_filename = _result_filename(
-                    attack_name,
-                    payload_name,
-                    defense,
-                )
-                shutil.copyfile(source_log, results_dir / result_filename)
+        if exit_code != 0:
+            print("Skipping log and evaluation result for unsuccessful run.")
+        else:
+            source_logs = list(run_logs_dir.glob("*.json"))
+            if source_logs:
+                source_log = source_logs[0]
+                final_log = logs_dir / source_log.name
+                shutil.copyfile(source_log, final_log)
+                if payload_name and attack_name:
+                    result_filename = _result_filename(
+                        attack_name,
+                        payload_name,
+                        defense,
+                    )
+                    defense_dir = results_dir / _defense_directory(defense)
+                    defense_dir.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(source_log, defense_dir / result_filename)
 
     except docker.errors.DockerException as e:
         print(f"Docker API Error: {e}")

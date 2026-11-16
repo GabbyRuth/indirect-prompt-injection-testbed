@@ -40,10 +40,15 @@ synthetic [`password.txt`](tests/fixtures/password.txt). All payload
 directories and attack files are processed by `testbed/main.py`.
 
 Each completed run is also copied to `evaluation_results/` beside `logs/`,
-using filenames in the form `<attack>-<payload>-<defense>.json`. Results
-include the payload, attack, asset, defense, full event/response record, and a
-deterministic `evaluation.success` value. Success is based on the expected tool
-completing without an error, not on the model's final text.
+grouped into a subdirectory for its defense combination (for example,
+`evaluation_results/baseline/` or
+`evaluation_results/baseline-provenance/`). Files use the filename form
+`<attack>-<payload>-<defense>.json`. Results include the payload, attack, asset,
+defense, full event/response record, and a deterministic `evaluation.success`
+value. Success is based on the expected tool completing without an error, not
+on the model's final text. Runs whose runner exits unsuccessfully, including
+daily API rate-limit failures, are not copied to `logs/` or
+`evaluation_results/`.
 
 A  research testbed for evaluating how AI agents respond to indirect prompt injection attacks and measuring the effectiveness of different defense mechanisms.
 
